@@ -1,3 +1,5 @@
-# 3d-cube
+# xfile-animation
 
-purpose is display 3d cube
+purpose is display walking person
+
+The code for this branch is very much based on http://marupeke296.com/.
