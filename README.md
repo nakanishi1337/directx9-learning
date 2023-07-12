@@ -1,3 +1,3 @@
-# 2d-triangle
+# 3d-cube
 
-purpose is display 2d triangle
+purpose is display 3d cube
