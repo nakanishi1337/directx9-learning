@@ -1,3 +1,3 @@
-# blank-window
+# 2d-triangle
 
-purpose is making blank window
+purpose is display 2d triangle
