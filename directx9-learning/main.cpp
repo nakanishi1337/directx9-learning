@@ -225,7 +225,7 @@ void GetMeshInfo(FbxNode* node) {
 	}
 
 
-	//スキンメッシュ用頂点情報取り出し//////////////////////////////////////////////////////////////////
+	//スキンメッシュ用頂点取り出し//////////////////////////////////////////////////////////////////
 	double** WEIGHT = new double* [PositionNumber];
 	for (int i = 0; i < PositionNumber; i++) {
 		WEIGHT[i] = new double[3];
@@ -243,6 +243,60 @@ void GetMeshInfo(FbxNode* node) {
 	for (int i = 0; i < PositionNumber; i++) {
 		for (int k = 0; k < 4; k++) {
 			BONEID[i][k] = 0;
+		}
+	}
+
+	// スキン(アニメーションのこと？)の数を取得
+	for (int i = 0; i < SkinNumber; ++i) {
+		// i番目のスキンを取得
+		FbxSkin* skin = static_cast<FbxSkin*>(mesh->GetDeformer(i, FbxDeformer::eSkin));
+
+		// クラスタ(ボーンのこと？)の数を取得
+		int clusterNum = skin->GetClusterCount();
+
+		for (int fff = 0; fff < PositionNumber; ++fff) {
+			for (int j = 0; j < clusterNum; ++j) {
+				// j番目のクラスタ(ボーン)を取得
+				FbxCluster* cluster = skin->GetCluster(j);
+
+				int	pointNum = cluster->GetControlPointIndicesCount();//影響する頂点数
+				int* pointAry = cluster->GetControlPointIndices();    //影響する頂点インデックス
+				double* weightAry = cluster->GetControlPointWeights();
+
+				for (int k = 0; k < pointNum; ++k) {
+					// 頂点インデックスとウェイトを取得
+					int   index = pointAry[k];
+					float weight = (float)weightAry[k];
+					if (fff == index) {
+						// std::cout << j << "番目のボーン" << weight << std::endl;
+
+						 //WEIGHT補填
+						if (WEIGHT[fff][0] == 0) {
+							WEIGHT[fff][0] = weight;
+						}
+						else if (WEIGHT[fff][1] == 0) {
+							WEIGHT[fff][1] = weight;
+						}
+						else if (WEIGHT[fff][2] == 0) {
+							WEIGHT[fff][2] = weight;
+						}
+
+						//BONE補填
+						if (BONEID[fff][0] == 0) {
+							BONEID[fff][0] = j;
+						}
+						else if (BONEID[fff][1] == 0) {
+							BONEID[fff][1] = j;
+						}
+						else if (BONEID[fff][2] == 0) {
+							BONEID[fff][2] = j;
+						}
+						else if (BONEID[fff][3] == 0) {
+							BONEID[fff][3] = j;
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -382,8 +436,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	//ウィンドウの初期位置とサイズを決める
 	int WindowInitialPosition_X = 100;
 	int WindowInitialPosition_Y = 100;
-	int WindowInitialSize_X = 300;
-	int WindowInitialSize_Y = 300;
+	int WindowInitialSize_X = 1000;
+	int WindowInitialSize_Y = 700;
 
 	WNDCLASSEX wcex = { sizeof(WNDCLASSEX), CS_HREDRAW | CS_VREDRAW, WndProc, 0, 0, hInstance, NULL, NULL,(HBRUSH)(COLOR_WINDOW + 1), NULL, szClassName, NULL };
 	if (!RegisterClassEx(&wcex)) { MessageBox(NULL, TEXT("ウィンドウクラスの取得に失敗しました"), TEXT("エラー"), MB_OK); return 0; }
