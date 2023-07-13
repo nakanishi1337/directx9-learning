@@ -39,7 +39,7 @@ D3DXMATRIX* INVinitMats;
 D3DXMATRIX** FrameMat;
 
 // シェーダ
-//  重み係数と頂点を動かすためのワールド変換行列の配列を渡します
+//  重み係数と頂点を動かすためのワールド変換行列の配列を渡します.
 const char* vertexShaderStr =
 "float4x4 view : register(c0);"
 "float4x4 proj : register(c4);"
