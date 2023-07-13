@@ -12,7 +12,7 @@ The main learning topics covered in this repository include:
 
 - Displaying a blank window
 - Rendering a 2D triangle
-- Creating a 3D cube
+- Rendering a 3D cube
 - Implementing simple mesh animations from X file
 - Implementing simple mesh animations from FBX file
 
