@@ -12,23 +12,25 @@
 #include <d3d9.h>
 #include <d3dx9.h>
 
-char msgbuf[100];
+char msgbuf[1024];
 
-#define FVF_CUSTOM (D3DFVF_XYZB4|D3DFVF_LASTBETA_UBYTE4  )
+#define FVF_CUSTOM (D3DFVF_XYZB4|D3DFVF_LASTBETA_UBYTE4 | D3DFVF_TEX1)
 #define szClassName TEXT("fbx animation")
 char ImportFileName[] = "Res/panda_nomalized_polygon900.fbx";
-LPCWSTR TextureName = L"panda_tex_2.jpg";
+LPCWSTR TextureName = L"Res/panda_tex_2.jpg";
 
 struct CUSTOMVERTEX {
 	D3DXVECTOR3 coord;
 	D3DXVECTOR3 weight;
 	unsigned char matrixIndex[4];
+	D3DXVECTOR2 uv;
 };
 int PositionNumber;
 int PolygonNumber;
 int IndexNumber;
 int SkinNumber;
 int BoneNumber;
+int LayerNumber;
 FbxTime period;
 FbxTime startTime;
 FbxTime endTime;
@@ -49,9 +51,11 @@ const char* vertexShaderStr =
 "    float3 pos : POSITION;"
 "    float3 blend : BLENDWEIGHT;"
 "    int4 idx : BLENDINDICES;"
+"    float2 tex : TEXCOORD;"
 "};"
 "struct VS_OUT {"
 "    float4 pos : POSITION;"
+"	 float2 tex : TEXCOORD;"
 "};"
 "VS_OUT main( VS_IN In ) {"
 "    VS_OUT Out = (VS_OUT)0;"
@@ -66,16 +70,35 @@ const char* vertexShaderStr =
 
 "    Out.pos = mul( Out.pos, view );"
 "    Out.pos = mul( Out.pos, proj );"
+"    "
+"    Out.tex = In.tex;"
 "    return Out;"
 "}";
 
 // ピクセルシェーダ
+//const char* pixelShaderStr =
+//"struct PS_IN {"
+//"    float4 pos  : POSITION;"
+//"	 float2 tex : TEXCOORD;"
+//"};"
+//"Texture2D    myTexture : register(t0);"
+//"SamplerState mySampler : register(s0);"
+//"float4 main( PS_IN In )  : Color {"
+//"    float4 texColor = myTexture.Sample(mySampler, In.tex);"
+//"    return texColor;"
+//"}"
+//"";
+
+// ピクセルシェーダ
 const char* pixelShaderStr =
-"struct VS_OUT {"
-"    float4 pos : POSITION;"
+"struct PS_IN {"
+"    float4 pos  : POSITION;"
+"	 float2 tex : TEXCOORD;"
 "};"
-"float4 main( VS_OUT In ) : COLOR {"
-"    return float4(1.0f, 1.0f, 1.0f, 1.0f);"
+"sampler2D MyTexture : register(s0);"
+"float4 main( PS_IN In )  : COLOR {"
+"    float4 texColor = tex2D(MyTexture, In.tex);"
+"    return texColor;"
 "}"
 "";
 
@@ -301,14 +324,29 @@ void GetMeshInfo(FbxNode* node) {
 	}
 
 
-	
+
+	// UV情報を取得
+	// UVの数・インデックス
+	LayerNumber = mesh->GetLayerCount();
+	FbxLayer* layer = mesh->GetLayer(0);
+	FbxLayerElementUV* elem = layer->GetUVs();
+
+	float** uvs = new float* [IndexNumber];
+	for (int i = 0; i < IndexNumber; i++) {
+		int uvindex = elem->GetIndexArray().GetAt(i);
+		uvs[i] = new float[2];
+		uvs[i][0] = (float)elem->GetDirectArray().GetAt(uvindex)[0];
+		uvs[i][1] = 1.0f - (float)elem->GetDirectArray().GetAt(uvindex)[1];
+	}
+
 	////トライアングルリストの作成
 	MyVertex = new CUSTOMVERTEX[IndexNumber];
 	for (int i = 0; i < IndexNumber; ++i)
 	{
 		MyVertex[i] = { D3DXVECTOR3(position[index[i]][0],position[index[i]][1],position[index[i]][2]),
 						D3DXVECTOR3(WEIGHT[index[i]][0],WEIGHT[index[i]][1],WEIGHT[index[i]][2]),
-						{(unsigned char)BONEID[index[i]][0],(unsigned char)BONEID[index[i]][1],(unsigned char)BONEID[index[i]][2],(unsigned char)BONEID[index[i]][3]} };
+						{(unsigned char)BONEID[index[i]][0],(unsigned char)BONEID[index[i]][1],(unsigned char)BONEID[index[i]][2],(unsigned char)BONEID[index[i]][3]},
+						D3DXVECTOR2(uvs[i][0], uvs[i][1]) };
 	}
 }
 
@@ -402,11 +440,13 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	sprintf(msgbuf, "SkinNumber is %d\n", SkinNumber); OutputDebugStringA(msgbuf);
 	sprintf(msgbuf, "BoneNumber is %d\n", BoneNumber); OutputDebugStringA(msgbuf);
 	sprintf(msgbuf, "FrameNum is %d\n", FrameNum); OutputDebugStringA(msgbuf);
+	sprintf(msgbuf, "LayerNumber is %d\n", LayerNumber); OutputDebugStringA(msgbuf);
 	for (int i = 0; i < 10; ++i) {
-		sprintf(msgbuf, "MyVertex is D3DXVECTOR3(%f, %f, %f), D3DXVECTOR3(%f, %f, %f),{%hhu,%hhu,%hhu,%hhu}\n",
+		sprintf(msgbuf, "MyVertex is D3DXVECTOR3(%f, %f, %f), D3DXVECTOR3(%f, %f, %f),{%hhu,%hhu,%hhu,%hhu}, D3DXVECTOR2(%f, %f)\n",
 			MyVertex[i].coord.x, MyVertex[i].coord.y, MyVertex[i].coord.z,
 			MyVertex[i].weight.x, MyVertex[i].weight.y, MyVertex[i].weight.z,
-			MyVertex[i].matrixIndex[0], MyVertex[i].matrixIndex[1], MyVertex[i].matrixIndex[2], MyVertex[i].matrixIndex[3]);
+			MyVertex[i].matrixIndex[0], MyVertex[i].matrixIndex[1], MyVertex[i].matrixIndex[2], MyVertex[i].matrixIndex[3],
+			MyVertex[i].uv.x, MyVertex[i].uv.y);
 		OutputDebugStringA(msgbuf);
 	}
 	for (int i = 0; i < 10; ++i) {
@@ -467,10 +507,14 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 		{0, 0,  D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0},
 		{0, 12, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_BLENDWEIGHT, 0},
 		{0, 24, D3DDECLTYPE_UBYTE4, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_BLENDINDICES, 0},
+		{0, 36, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0},
+		
 		D3DDECL_END()
 	};
 	IDirect3DVertexDeclaration9* decl = 0;
 	g_pD3DDev->CreateVertexDeclaration(declAry, &decl);
+
+
 
 	// シェーダのコンパイルとシェーダ作成
 	ID3DXBuffer* shader, * error;
@@ -491,6 +535,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	g_pD3DDev->CreatePixelShader((const DWORD*)shader->GetBufferPointer(), &pixelShader);
 	shader->Release();
 
+	g_pD3DDev->SetVertexShader(vertexShader);
+	g_pD3DDev->SetPixelShader(pixelShader);
+
 	// 頂点バッファの作成
 	IDirect3DVertexBuffer9* pVertex;
 	if (FAILED(g_pD3DDev->CreateVertexBuffer(sizeof(CUSTOMVERTEX) * IndexNumber, D3DUSAGE_WRITEONLY, FVF_CUSTOM, D3DPOOL_MANAGED, &pVertex, NULL))) {
@@ -498,13 +545,16 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 		return -1;
 	}
 
-	D3DXMATRIX* combMat = new D3DXMATRIX[BoneNumber];//配列のそれぞれに行列を入れる
-	D3DXMATRIX* combMatAry = combMat;
-
 	//	テクスチャ
-	//LPDIRECT3DTEXTURE9      g_pTexture = NULL;
-	//D3DXCreateTextureFromFile(g_pD3DDev, TextureName, &g_pTexture);
-	//g_pD3DDev->SetTexture(0, g_pTexture);
+	LPDIRECT3DTEXTURE9 g_pTexture = NULL;
+	D3DXCreateTextureFromFile(g_pD3DDev, TextureName, &g_pTexture);
+	g_pD3DDev->SetTexture(0, g_pTexture);
+
+
+
+	//アニメ
+	D3DXMATRIX* combMat = new D3DXMATRIX[BoneNumber];
+	D3DXMATRIX* combMatAry = combMat;
 
 	//メッセージループ/////////////////
 	MSG msg;
@@ -544,7 +594,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 		D3DXMatrixMultiply(&World, &World, &Rot_X);    // X軸回転後
 
 		// ビュー変換
-		D3DXVECTOR3 eye = D3DXVECTOR3(0, 0, -40.0f);
+		D3DXVECTOR3 eye = D3DXVECTOR3(0, 0, 40.0f);
 		D3DXVECTOR3 at = D3DXVECTOR3(0, 0, 0);
 		D3DXVECTOR3 up = D3DXVECTOR3(0, 1, 0);
 		D3DXMatrixLookAtLH(&View, &eye, &at, &up);
@@ -562,8 +612,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 
 
 		// 変数を書き込むレジスタ位置はシェーダに書いてありますよ。
-		g_pD3DDev->SetVertexShader(vertexShader);
-		g_pD3DDev->SetPixelShader(pixelShader);
 		g_pD3DDev->SetVertexShaderConstantF(0, (const float*)&View, 4);
 		g_pD3DDev->SetVertexShaderConstantF(4, (const float*)&Persp, 4);
 		g_pD3DDev->SetVertexShaderConstantF(8, (const float*)&World, 4);
