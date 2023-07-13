@@ -14,3 +14,7 @@ The main learning topics covered in this repository include:
 - Rendering a 2D triangle
 - Creating a 3D cube
 - Implementing simple mesh animations
+
+## Teaching materials used
+
+http://marupeke296.com/
