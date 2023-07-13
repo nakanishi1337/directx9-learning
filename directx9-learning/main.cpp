@@ -550,8 +550,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	D3DXCreateTextureFromFile(g_pD3DDev, TextureName, &g_pTexture);
 	g_pD3DDev->SetTexture(0, g_pTexture);
 
-
-
 	//アニメ
 	D3DXMATRIX* combMat = new D3DXMATRIX[BoneNumber];
 	D3DXMATRIX* combMatAry = combMat;
@@ -594,7 +592,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 		D3DXMatrixMultiply(&World, &World, &Rot_X);    // X軸回転後
 
 		// ビュー変換
-		D3DXVECTOR3 eye = D3DXVECTOR3(0, 0, 40.0f);
+		D3DXVECTOR3 eye = D3DXVECTOR3(0, 0, 30.0f);
 		D3DXVECTOR3 at = D3DXVECTOR3(0, 0, 0);
 		D3DXVECTOR3 up = D3DXVECTOR3(0, 1, 0);
 		D3DXMatrixLookAtLH(&View, &eye, &at, &up);
@@ -602,14 +600,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 		// 射影変換
 		D3DXMatrixPerspectiveFovLH(&Persp, D3DXToRadian(45), 640.0f / 480.0f, 1.0f, 10000.0f);
 
-
 		// 行列登録
 		g_pD3DDev->SetTransform(D3DTS_WORLD, &World);
 		//g_pD3DDev->SetTransform(D3DTS_VIEW, &View);
 		//g_pD3DDev->SetTransform(D3DTS_PROJECTION, &Persp);
-
-
-
 
 		// 変数を書き込むレジスタ位置はシェーダに書いてありますよ。
 		g_pD3DDev->SetVertexShaderConstantF(0, (const float*)&View, 4);
