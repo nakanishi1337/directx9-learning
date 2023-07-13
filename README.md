@@ -1,3 +1,3 @@
-# 3d-cube
+# fbx-animation
 
-purpose is display 3d cube
+purpose is importing FBX file and display walking panda
